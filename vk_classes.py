@@ -6,12 +6,14 @@ import requests
 
 from  tqdm  import  tqdm
 
+from pprint import pprint
+
 
 class VkUser:
     '''
     Класс VkUser - используется для работы с аккаунтом ВКонтакте.
 
-    Основное применение - обработка информации о конкретном пользователе.
+    Основное применение - обработка информации о конкретном пользователе (пользователях).
 
     Attributes
     ----------
@@ -25,18 +27,31 @@ class VkUser:
     Methods
     -------
     _error_validator(response: dict)
-        обрабатывает возникающие ошибки.
-        Является приватным методом.
+        обрабатывает возникающие ошибки. Является приватным методом.
+
+    users_get(user_ids: str)
+        возвращает расширенную информацию о пользователях.
+
+    get_albums(owner_id: int, count: int)
+        возвращает список фотоальбомов пользователя (или нескольких пользователей).
 
     get_photos(album_id: str, rev: int, owner_id: int, extended: int, count: int)
         возвращает список фотографий в альбоме.
+
+
+    Exceptions
+    ----------
+    Общих исключений, которые могут возникнуть при работе с API VK, достаточно много,
+    и более целесообразно привести на них ссылку в официальной документации: https://vk.com/dev/errors
+
+    Специальные исключения, которые возникают при работе с конкретным методом,
+    можно найти в документации к этим методам.
 
     '''
 
     url = 'https://api.vk.com/method/'
 
     def __init__(self, token, version):
-
         self.params = {
             'access_token': token,
             'v': version
@@ -47,7 +62,6 @@ class VkUser:
         Метод для обработки ошибок.
         Возвращает сообщение об ошибке и записывает возникающие ошибки в файл.
         Является приватным методом.
-
 
         Parameters
         ----------
@@ -62,6 +76,7 @@ class VkUser:
         for value in response.values():
 
             if 'error_code' in value:
+
                 print(f"\nРабота метода была прервана ошибкой.\n"
                       f"Происходит обработка данных об ошибке, пожалуйста, подождите...\n"
                       f"\nКод ошибки: {value['error_code']}\n"
@@ -77,9 +92,127 @@ class VkUser:
             else:
                 return False
 
+    def users_get(self, user_ids):
+        '''
+        Метод, который возвращает расширенную информацию о пользователях.
+
+        Parameters
+        ----------
+        user_ids: str
+            перечисленные через запятую идентификаторы пользователей или их короткие имена (screen_name).
 
 
-    def get_photos(self, album_id, rev, owner_id, extended=1, count=5):
+        Exceptions
+        ----------
+        При работе с данным методом возникают только общие исключения.
+
+        '''
+
+        res_user_list = []
+
+        users_get_url = self.url + 'users.get'
+
+        users_get_params = {
+            'user_ids': user_ids
+        }
+
+        response = requests.get(users_get_url, params={**self.params, **users_get_params})
+
+        if response.status_code >= 200 and response.status_code < 300:
+
+            req = response.json()
+
+            if self._error_validator(req) == False:
+
+                for value in req.values():
+
+                    for info in value:
+
+                        user_dict = {
+                            'id': info['id'],
+                            'last_name': info['last_name'],
+                            'first_name': info['first_name'],
+                            'is_closed': info['is_closed'],
+                            'can_access_closed': info['can_access_closed']
+                        }
+
+                        res_user_list.append(user_dict)
+
+                pprint(res_user_list)
+
+                print()
+
+                return res_user_list
+
+            else:
+                print('Программа продолжает работу в штатном режиме.\n')
+
+    def get_albums(self, owner_id, count):
+        '''
+        Возвращает список фотоальбомов пользователя или сообщества.
+
+        Parameters
+        ----------
+        owner_id: int
+            идентификатор пользователя или сообщества, которому принадлежат альбомы.
+
+        count: int
+            количество альбомов, которое нужно вернуть.
+
+        Exceptions
+        ----------
+        30 - This profile is private
+
+        Данное исключение является специальным для данного метода.
+
+
+        В качестве возврата (return) метод использует результирующий список с информацией о фотоальбомах (res_albums_list).
+
+        '''
+
+        res_albums_list = []
+
+        get_albums_url = self.url + 'photos.getAlbums'
+
+        get_albums_params = {
+            'owner_id': owner_id,
+            'count': count
+        }
+
+        response = requests.get(get_albums_url, params={**self.params, **get_albums_params})
+
+        if (response.status_code >= 200 and response.status_code < 300):
+
+                req = response.json()
+
+                if self._error_validator(req) == False:
+
+                    for value in tqdm(req['response']['items'], desc='Происходит формирование списка с информацией об альбомах, пожалуйста, подождите...', unit='S'):
+
+                        time.sleep(1)
+
+                        album_dict = {
+                            'title': value['title'],
+                            'user_id': value['owner_id'],
+                            'id': value['id'],
+                            'size': value['size'],
+                            'description': value['description']
+                        }
+
+                        res_albums_list.append(album_dict)
+
+                    print()
+                    print('Данные успешно сформированы.')
+                    print()
+
+                    return res_albums_list
+
+                else:
+                    print('Программа продолжает работу в штатном режиме.\n')
+
+
+
+    def get_photos(self, album_id, rev, owner_id, count, extended=1):
         '''
         Метод для формирования списка с информацией о фотографиях.
 
@@ -126,7 +259,7 @@ class VkUser:
 
         count: int
             количество записей, которое будет получено.
-        Положительное число, по умолчанию 5, максимальное значение 1000.
+        Максимальное значение 1000.
 
 
         Exceptions
@@ -135,17 +268,15 @@ class VkUser:
 
         Данное исключение является специальным для данного метода.
 
-        Общих исключений, которые могут возникнуть при работе с API VK, достаточно много,
-        и более целесообразно привести на них ссылку в официальной документации: https://vk.com/dev/errors
 
-
-        В качестве возврата (return) метод использует результирующий список с информацией о фотографиях (res_list).
+        В качестве возврата (return) метод использует результирующий список с информацией о фотографиях (res_photos_list).
 
         '''
 
-        res_list = []
+        res_photos_list = []
 
         get_photos_url = self.url + 'photos.get'
+
         get_photos_params = {
             'owner_id': owner_id,
             'rev': rev,
@@ -158,12 +289,14 @@ class VkUser:
 
         if response.status_code >= 200 and response.status_code < 300:
 
-            req = requests.get(get_photos_url, params={**self.params, **get_photos_params}).json()
+            req = response.json()
 
             if self._error_validator(req) == False:
+
                 print()
 
-                for value in tqdm(req['response']['items'], desc='Происходит формирование списка с информацией о фото, пожалуйста, подождите...', total=5, unit='S'):
+                for value in tqdm(req['response']['items'], desc='Происходит формирование списка с информацией о фото, пожалуйста, подождите...', unit='S'):
+
                     time.sleep(1)
 
                     photo_dict = {
@@ -172,12 +305,13 @@ class VkUser:
                         'url': value['sizes'][-1]['url']
                     }
 
-                    res_list.append(photo_dict)
+                    res_photos_list.append(photo_dict)
 
                 print()
                 print('Данные успешно сформированы.')
+                print()
 
-                return res_list
+                return res_photos_list
 
             else:
                 print('Программа продолжает работу в штатном режиме.\n')

@@ -6,6 +6,8 @@ import requests
 
 from  tqdm  import  tqdm
 
+from pprint import pprint
+
 
 class YandexDisk:
     '''
@@ -27,17 +29,20 @@ class YandexDisk:
     _error_validator(response: dict)
         обрабатывает возникающие ошибки. Является приватным методом.
 
-    _create_directory_on_disk(path: str)
-        создаёт папку на Яндекс.Диске. Является приватным методом.
+    get_files_list()
+        возвращает список файлов на Яндекс.Диске.
 
-    create_vk_user_directory(owner_id: int)
-        создаёт папку на Яндекс.Диске по определённому пути.
+    create_directory_on_disk(path: str)
+        создаёт папку на Яндекс.Диске.
 
     _download_file(path: str, url: str)
         загружает файл по url на Яндекс.Диск. Является приватным методом.
 
     download_vk_user_file(owner_id: int, list_name: str)
         загружает файл на Яндекс.Диск по определённому пути.
+
+    delete_file_to_disk(path: str)
+        удаляет файл на Яндекс.Диске.
 
 
     Exceptions
@@ -58,7 +63,8 @@ class YandexDisk:
     507	- Недостаточно свободного места.
 
     Эти исключения являются общими для используемых методов работы с Яндекс.Диском в данном классе.
-    Специальные исключения, которые возникают именно при работе с конкретным методом,
+
+    Специальные исключения, которые возникают при работе с конкретным методом,
     можно найти в документации к этим методам.
 
     '''
@@ -103,10 +109,39 @@ class YandexDisk:
         else:
             return False
 
-
-    def _create_directory_on_disk(self, path):
+    def get_files_list(self):
         '''
-        Метод для создания папки на Яндекс.Диске. Является приватным методом.
+        Метод для получения списка файлов, упорядоченных по имени.
+
+        Exceptions
+        ----------
+        403	- Недостаточно прав для изменения данных в общей папке.
+
+        404 - Не удалось найти запрошенный ресурс.
+
+        Данные исключения являются специальными для данного метода.
+
+
+        В качестве возврата (return) метод использует список файлов на Яндекс.Диске.
+
+        '''
+
+        disk_file_list = []
+
+        files_url = 'https://cloud-api.yandex.net/v1/disk/resources/files'
+        headers = self.get_headers()
+        response = requests.get(url=files_url, headers=headers)
+        req = response.json()
+
+        for item in req['items']:
+
+            disk_file_list.append({'file_name': item['name'], 'path': item['path']})
+
+        return disk_file_list
+
+    def create_directory_on_disk(self, path):
+        '''
+        Метод для создания папки на Яндекс.Диске.
 
         Parameters
         ----------
@@ -145,23 +180,6 @@ class YandexDisk:
         else:
             print('Программа продолжает работу в штатном режиме.\n')
 
-    def create_vk_user_directory(self, owner_id):
-        '''
-        Метод для создания папки на Яндекс.Диске с определённым именем.
-
-        Parameters
-        ----------
-        owner_id: int
-            идентификатор владельца альбома.
-
-
-        Результатом выполнения метода является создание директории на Яндекс.Диске по определённому пути (res_path).
-
-        '''
-
-        res_path = owner_id
-        self._create_directory_on_disk(res_path)
-
     def _download_file(self, path, url):
         '''
         Метод для загрузки файлов по url на Яндекс.Диск. Является приватным методом.
@@ -194,21 +212,21 @@ class YandexDisk:
 
         if self._error_validator(req) == False:
 
-            return response.json()
+            return req
 
         else:
             print('Возникла непредвиденная ошибка. Программа завершает свою работу...')
             exit()
 
 
-    def download_vk_user_file(self, owner_id, list_name):
+    def download_vk_user_file(self, path, list_name):
         '''
         Метод для загрузки файлов на Яндекс.Диск по определённому пути.
 
         Parameters
         ----------
-        owner_id: int
-            идентификатор владельца альбома.
+        path: str
+            путь, куда будет помещён ресурс.
 
         list_name: list
             список словарей, содержащий информацию о фотографиях пользователя Вконтакте.
@@ -220,10 +238,46 @@ class YandexDisk:
 
         print()
 
-        for photo in tqdm(list_name, desc='Идёт загрузка файлов на диск, пожалуйста, подождите ...', total=5, unit='S'):
-            res_path = f"{owner_id}/{photo['file_name']}"
-            self._download_file(res_path, photo['url'])
+        for info in tqdm(list_name, desc='Идёт загрузка файлов на Яндекс.Диск, пожалуйста, подождите ...', unit='S'):
             time.sleep(1)
+            res_path = f"{path}/{info['file_name']}"
+            self._download_file(res_path, info['url'])
 
         print()
         print('Данные успешно загружены.')
+
+    def delete_file_to_disk(self, path, permanently=False):
+        '''
+        Метод для удаления файлов на Яндекс.Диске.
+
+        Parameters
+        ----------
+        path: str
+            путь к тому ресурсу, который нужно удалить.
+
+
+        Exceptions
+        ----------
+        400	- Проверка md5 возможна только для файлов.
+
+        404 - Не удалось найти запрошенный ресурс.
+
+        409 - Ресурс "{path}" уже существует.
+
+        423 - Ресурс заблокирован. Возможно, над ним выполняется другая операция.
+
+        Данные исключения являются специальными для данного метода.
+
+
+        По умолчанию удаляет ресурс в Корзину.
+        Чтобы удалить ресурс не помещая в корзину, следует указать параметр permanently=true.
+        Если удаление происходит асинхронно, то вернёт ответ со статусом 202 и ссылкой на асинхронную операцию.
+        Иначе вернёт ответ со статусом 204 и пустым телом.
+
+        '''
+
+        delete_url = "https://cloud-api.yandex.net/v1/disk/resources"
+        headers = self.get_headers()
+        params = {"path": path, "permanently": permanently}
+        response = requests.delete(url=delete_url, headers=headers, params=params)
+        return response.status_code
