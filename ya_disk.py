@@ -6,8 +6,6 @@ import requests
 
 from  tqdm  import  tqdm
 
-from pprint import pprint
-
 
 class YandexDisk:
     '''
@@ -32,16 +30,16 @@ class YandexDisk:
     get_files_list()
         возвращает список файлов на Яндекс.Диске.
 
-    create_directory_on_disk(path: str)
+    create_directory_yandex_disk(path: str)
         создаёт папку на Яндекс.Диске.
 
-    _download_file(path: str, url: str)
+    _download_files(path: str, url: str)
         загружает файл по url на Яндекс.Диск. Является приватным методом.
 
-    download_vk_user_file(owner_id: int, list_name: str)
+    download_files_yandex_disk(owner_id: int, list_name: str)
         загружает файл на Яндекс.Диск по определённому пути.
 
-    delete_file_to_disk(path: str)
+    delete_files_yandex_disk(path: str)
         удаляет файл на Яндекс.Диске.
 
 
@@ -139,7 +137,7 @@ class YandexDisk:
 
         return disk_file_list
 
-    def create_directory_on_disk(self, path):
+    def create_directory_yandex_disk(self, path):
         '''
         Метод для создания папки на Яндекс.Диске.
 
@@ -180,7 +178,7 @@ class YandexDisk:
         else:
             print('Программа продолжает работу в штатном режиме.\n')
 
-    def _download_file(self, path, url):
+    def _download_files(self, path, url):
         '''
         Метод для загрузки файлов по url на Яндекс.Диск. Является приватным методом.
 
@@ -219,7 +217,7 @@ class YandexDisk:
             exit()
 
 
-    def download_vk_user_file(self, path, list_name):
+    def download_files_yandex_disk(self, path, list_name):
         '''
         Метод для загрузки файлов на Яндекс.Диск по определённому пути.
 
@@ -241,12 +239,12 @@ class YandexDisk:
         for info in tqdm(list_name, desc='Идёт загрузка файлов на Яндекс.Диск, пожалуйста, подождите ...', unit='S'):
             time.sleep(1)
             res_path = f"{path}/{info['file_name']}"
-            self._download_file(res_path, info['url'])
+            self._download_files(res_path, info['url'])
 
         print()
         print('Данные успешно загружены.')
 
-    def delete_file_to_disk(self, path, permanently=False):
+    def delete_files_yandex_disk(self, path, permanently=False):
         '''
         Метод для удаления файлов на Яндекс.Диске.
 
@@ -254,6 +252,9 @@ class YandexDisk:
         ----------
         path: str
             путь к тому ресурсу, который нужно удалить.
+
+        permanently: bool
+            удалить ресурс не помещая в Корзину.
 
 
         Exceptions

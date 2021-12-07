@@ -1,0 +1,7 @@
+.idea/
+*__pycache__*
+venv/
+vk_token.txt
+ya_token.txt
+credentials.json
+token.json

@@ -1,8 +1,6 @@
 import json
 
-import ya_disk
-
-import vk_classes
+import google_drive as google
 
 from ya_disk import YandexDisk
 
@@ -21,15 +19,29 @@ with open('vk_token.txt', 'r', encoding='utf-8') as vk_file:
 main_menu = """
 Главное меню:
 
-/documentation - вывести дополнительное меню документации программы,
+/docs - вывести дополнительное меню документации программы.
+
+
+Класс VkUser:
 
 /get_photos – получить информацию о фотографиях пользователя (пользователей) Вконтакте,
 
-/get_albums - получить информацию о фотоальбомах пользователя (пользователей) Вконтакте,
+/get_albums - получить информацию о фотоальбомах пользователя (пользователей) Вконтакте.
 
-/create_directory_on_disk – создать папку на Яндекс.Диске с определённым именем,
 
-/download_photos – загрузить фото на Яндекс.Диск по определённому пути,
+Класс YandexDisk:
+
+/create_directory_yandex_disk – создать папку на Яндекс.Диске с определённым именем,
+
+/download_photos_yandex_disk – загрузить фото на Яндекс.Диск по определённому пути.
+
+
+Функционал для работы с Google.Drive:
+
+/create_directory_google_drive - создать папку на Google.Drive с определённым именем,
+
+/download_photos_google_drive - загрузить фото на Google.Drive по определённому пути (задан по умолчанию).
+
 
 /exit_save_all - выйти из программы, предварительно сохранив данные в лог программы.
 
@@ -39,31 +51,51 @@ main_menu = """
 documentation = """
 Документация программы:
 
-/program_interface_doc - документация функции program_interface(),
+/program_interface_doc - документация функции program_interface.
+
+
+Класс VkUser (документация):
 
 /VkUser_doc - документация класса VkUser,
 
-/_error_validator_doc – документация метода _error_validator класса VkUser (является приватным),
+/_error_validator_doc – документация метода _error_validator (является приватным),
 
-/users_get_doc - документация метода users_get класса VkUser,
+/users_get_doc - документация метода users_get,
 
-/get_albums_doc - документация метода get_albums класса VkUser,
+/get_albums_doc - документация метода get_albums,
 
-/get_photos_doc – документация метода get_photos класса VkUser,
+/get_photos_doc – документация метода get_photos.
+
+
+Класс YandexDisk (документация):
 
 /YandexDisk_doc – документация класса YandexDisk,
 
-/_error_validator_doc – документация метода _error_validator класса YandexDisk (является приватным),
+/_error_validator_doc – документация метода _error_validator (является приватным),
 
-/get_files_list_doc – документация метода get_files_list класса YandexDisk,
+/get_files_list_doc – документация метода get_files_list,
 
-/create_directory_on_disk_doc – документация метода create_directory_on_disk класса YandexDisk,
+/create_directory_yandex_disk_doc – документация метода create_directory_yandex_disk,
 
-/_download_file_doc – документация метода _download_file класса YandexDisk (является приватным),
+/_download_files_doc – документация метода _download_files (является приватным),
 
-/download_vk_user_file_doc - документация метода download_vk_user_file класса YandexDisk,
+/download_files_yandex_disk_doc - документация метода download_files_yandex_disk,
 
-/delete_file_to_disk - документация метода delete_file_to_disk класса YandexDisk,
+/delete_files_yandex_disk_doc - документация метода delete_files_yandex_disk.
+
+
+Функционал для работы с Google.Drive (документация):
+
+/authorization_doc - документация функции authorization,
+
+/get_files_google_drive_doc - документация функции get_files_google_drive,
+
+/create_directory_google_drive_doc - документация функции create_directory_google_drive,
+
+/download_files_google_drive_doc - документация функции download_files_google_drive,
+
+/delete_files_google_drive_doc - документация функции delete_files_google_drive.
+
 
 /back - вернуться в главное меню.
 """
@@ -99,6 +131,10 @@ def program_interface():
 
     temp_albums_list = []
 
+    google_drive_files_list = []
+
+
+    temp_photos_set = set()
 
     disk_files_set = set()
 
@@ -108,6 +144,9 @@ def program_interface():
     vk_client = VkUser(vk_token, '5.131')
 
     yandex_disk = YandexDisk(yandex_token)
+
+    service = google.authorization()
+
 
     print('Вас приветствует программа по работе с файлами компании Python Software.\n'
         'Ознакомьтесь с главным меню перед тем, как продолжить.')
@@ -123,47 +162,62 @@ def program_interface():
 
         print()
 
-        if user_input == '/documentation':
+        if user_input == '/docs':
             print(documentation)
 
         elif user_input == '/program_interface_doc':
             print(program_interface.__doc__)
 
         elif user_input == '/VkUser_doc':
-            print(vk_classes.VkUser.__doc__)
+            print(VkUser.__doc__)
 
         elif user_input == '/_error_validator_doc':
-            print(vk_classes.VkUser._error_validator.__doc__)
+            print(VkUser._error_validator.__doc__)
 
         elif user_input == '/users_get_doc':
-            print(vk_classes.VkUser.users_get.__doc__)
+            print(VkUser.users_get.__doc__)
 
         elif user_input == '/get_albums_doc':
-            print(vk_classes.VkUser.get_albums.__doc__)
+            print(VkUser.get_albums.__doc__)
 
         elif user_input == '/get_photos_doc':
-            print(vk_classes.VkUser.get_photos.__doc__)
+            print(VkUser.get_photos.__doc__)
 
         elif user_input == '/YandexDisk_doc':
-            print(ya_disk.YandexDisk.__doc__)
+            print(YandexDisk.__doc__)
 
         elif user_input == '/_error_validator_doc':
-            print(ya_disk.YandexDisk._error_validator.__doc__)
+            print(YandexDisk._error_validator.__doc__)
 
         elif user_input == '/get_files_list_doc':
-            print(ya_disk.YandexDisk.get_files_list.__doc__)
+            print(YandexDisk.get_files_list.__doc__)
 
-        elif user_input == '/create_directory_on_disk_doc':
-            print(ya_disk.YandexDisk.create_directory_on_disk.__doc__)
+        elif user_input == '/create_directory_yandex_disk_doc':
+            print(YandexDisk.create_directory_yandex_disk.__doc__)
 
-        elif user_input == '/_download_file_doc':
-            print(ya_disk.YandexDisk._download_file.__doc__)
+        elif user_input == '/_download_files_doc':
+            print(YandexDisk._download_files.__doc__)
 
-        elif user_input == '/download_vk_user_file_doc':
-            print(ya_disk.YandexDisk.download_vk_user_file.__doc__)
+        elif user_input == '/download_files_yandex_disk_doc':
+            print(YandexDisk.download_files_yandex_disk.__doc__)
 
-        elif user_input =='/delete_file_to_disk':
-            print(ya_disk.YandexDisk.delete_file_to_disk.__doc__)
+        elif user_input =='/delete_files_yandex_disk_doc':
+            print(YandexDisk.delete_files_yandex_disk.__doc__)
+
+        elif user_input == '/authorization_doc':
+            print(google.authorization.__doc__)
+
+        elif user_input == '/get_files_google_drive_doc':
+            print(google.get_files_google_drive.__doc__)
+
+        elif user_input == '/create_directory_google_drive_doc':
+            print(google.create_directory_google_drive.__doc__)
+
+        elif user_input == '/download_files_google_drive_doc':
+            print(google.download_files_google_drive.__doc__)
+
+        elif user_input == '/delete_files_google_drive_doc':
+            print(google.delete_files_google_drive.__doc__)
 
         elif user_input == '/back':
             print(main_menu)
@@ -256,14 +310,14 @@ def program_interface():
                         temp_albums_list.clear()
 
 
-            elif user_input == '/create_directory_on_disk':
+            elif user_input == '/create_directory_yandex_disk':
 
                 path = str(input('Введите имя создаваемой папки: '))
 
-                create = yandex_disk.create_directory_on_disk(path)
+                create = yandex_disk.create_directory_yandex_disk(path)
 
 
-            elif user_input == '/download_photos':
+            elif user_input == '/download_photos_yandex_disk':
 
                 get_files_list = yandex_disk.get_files_list()
 
@@ -287,12 +341,12 @@ def program_interface():
 
                 for file_name in delete_files_set:
 
-                    delete = yandex_disk.delete_file_to_disk(f"{path}/{file_name}")
+                    delete = yandex_disk.delete_files_yandex_disk(f"{path}/{file_name}")
 
 
                 for load in temp_photos_list:
 
-                    download = yandex_disk.download_vk_user_file(path, load)
+                    download = yandex_disk.download_files_yandex_disk(path, load)
 
 
                 disk_files_set.clear()
@@ -300,6 +354,62 @@ def program_interface():
                 delete_files_set.clear()
 
                 temp_photos_list.clear()
+
+
+            elif user_input == '/create_directory_google_drive':
+
+                name = str(input('Введите имя создаваемой папки: '))
+
+                create = google.create_directory_google_drive(service, name)
+
+
+            elif user_input == '/download_photos_google_drive':
+
+                get_files_list_on_google_disk = google.get_files_google_drive(service)
+
+                for get in get_files_list_on_google_disk:
+
+                    google_drive_files_list.append(
+
+                        {
+                            'id': get['id'],
+                            'file_name': get['name']
+                        }
+
+                    )
+
+
+                for info in temp_photos_list:
+
+                    for value in info:
+
+                        temp_photos_set.add(value['file_name'])
+
+
+                for value in google_drive_files_list:
+
+                    if value['file_name'] in temp_photos_set:
+
+                        delete_files_set.add(value['id'])
+
+
+                for fileId in delete_files_set:
+
+                    delete = google.delete_files_google_drive(service, fileId)
+
+
+                for load in temp_photos_list:
+
+                    download = google.download_files_google_drive(service, load)
+
+
+                google_drive_files_list.clear()
+
+                temp_photos_list.clear()
+
+                temp_photos_set.clear()
+
+                delete_files_set.clear()
 
 
             elif user_input == '/exit_save_all':
@@ -336,5 +446,5 @@ def program_interface():
         except UnboundLocalError:
             print()
             print('Возникло исключение UnboundLocalError.\n'
-                  'Прежде,чем использовать метод download_vk_user_file() или кнопку exit_save_all, необходимо получить данные с помощью метода get_photos()\n'
+                  'Прежде,чем использовать метод download_files_yandex_disk или кнопку exit_save_all, необходимо получить данные с помощью метода get_photos()\n'
                   'Программа продолжает работу в штатном режиме.\n')
